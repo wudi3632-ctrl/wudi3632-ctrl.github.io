@@ -18,12 +18,23 @@ jobs:
       url: ${{ steps.deploy.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
-      - name: Fetch compiled game only
+        with:
+          repository: wudi3632-ctrl/HERO-LEGEND-demo
+          path: game-source
+      - name: Install Godot and Web export templates
+        run: |
+          curl -fL -o godot.zip https://github.com/godotengine/godot/releases/download/4.7.2-stable/Godot_v4.7.2-stable_linux.x86_64.zip
+          unzip -q godot.zip
+          chmod +x Godot_v4.7.2-stable_linux.x86_64
+          curl -fL -o templates.tpz https://github.com/godotengine/godot/releases/download/4.7.2-stable/Godot_v4.7.2-stable_export_templates.tpz
+          mkdir -p "$HOME/.local/share/godot/export_templates/4.7.2.stable"
+          unzip -q templates.tpz -d templates
+          cp -R templates/templates/. "$HOME/.local/share/godot/export_templates/4.7.2.stable/"
+      - name: Compile current game source
         run: |
           mkdir -p public
-          for file in index.html index.js index.wasm index.pck index.png index.icon.png index.apple-touch-icon.png; do
-            curl -fL --retry 3 -o "public/$file" "https://wudi3632-ctrl.github.io/HERO-LEGEND-demo/$file?build=${GITHUB_RUN_ID}"
-          done
+          ./Godot_v4.7.2-stable_linux.x86_64 --headless --path game-source --import
+          ./Godot_v4.7.2-stable_linux.x86_64 --headless --path game-source --export-release Web "$GITHUB_WORKSPACE/public/index.html"
           touch public/.nojekyll
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
